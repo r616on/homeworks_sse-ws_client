@@ -3,294 +3,203 @@ import createRequest from '../libs/createRequest';
 export default class Сhat {
   constructor(parentEl) {
     this.parentEl = parentEl;
-    this.thisTic = {};
+    this.url = 'localhost';
+    this.port = 7070;
 
     this.onClick.bind(this);
-    this.onFormAdd.bind(this);
-    this.editTic.bind(this);
+    this.loginBtn.bind(this);
+    this.wsMessage.bind(this);
 
-    this.onFormEdit.bind(this);
-    this.editStatus.bind(this);
-    this.fullTic.bind(this);
+    // this.onFormEdit.bind(this);
+    // this.editStatus.bind(this);
+    // this.fullTic.bind(this);
 
-    this.allTickets = [
-      {
-        id: 1627493913588,
-        name: 'Тэстовый',
-        status: false,
-        created: 'July 28, 2021 8:38 PM',
-        description: ' Что то длинное',
-      },
-      {
-        id: 1627493985287,
-        name: 'Командный бой',
-        status: false,
-        created: 'July 28, 2021 8:39 PM',
-        description: ' И еще что то',
-      },
-    ];
+    this.ws = new WebSocket(`ws://${this.url}:${this.port}/ws`);
+
+    this.ws.addEventListener('open', (evt) => {
+      console.log('open');
+    });
+
+    this.ws.addEventListener('message', (evt) => {
+      // handle evt.data
+      this.wsMessage(evt);
+    });
+    this.ws.addEventListener('close', (evt) => {
+      console.log('close');
+
+      // After this we can't send messages
+    });
+    this.ws.addEventListener('error', () => {
+      console.log(evt);
+      console.log('error');
+    });
   }
 
   static get markup() {
-    return `<div class="HelpDesk">
-               <div class="title">
-                <button class="btn add">Добавить тикет</button>
-               </div>
-               <div class="body-row"></div>
-            </div>;`;
+    return ` <div class='chat'>
+      <div class="login login__activ">
+        <div class="login-row">
+           <div class="login-title">Выбирите псевдоним</div>
+           <input class="login-input" type="text" name="name" placeholder="Выбирите псевдоним"/>
+           <button class="login-btn">Продолжить</button>
+        </div>
+        
+
+      </div>
+      <div class='chat__row'>
+        <div class='user'>
+          <div class='user__row'>
+           
+          </div>
+        </div>
+        <div class='chat-body'>
+          <div class='chat-body__row'>
+
+            <div class='massage'>
+              <div class='massage-item'>
+                <div class='massage-title'>
+                  <div class='author'> chat </div>
+                  <div class='date'> 10.02.2021</div>
+                </div>
+                <div class='massage-text'> Добрый вечер! отправть сообщение для всех)</div>
+              </div>
+              </div>            
+            
+          </div>
+          <div class='input'>
+              <input class='input__massage' type='text' placeholder='Введите ваше сообщение' / >
+            </div>
+        </div>
+      </div>
+    </div>`;
   }
 
   static get widgetSelector() {
-    return '.Сhat';
+    return '.chat';
   }
-
-  static get buttonSelector() {
-    return '.btn';
+  static get massageRowSelector() {
+    return '.chat-body__row';
   }
-
-  // static get inputSelector() {
-  //   return '.add-cart__input';
-  // }
+  static get userRowSelector() {
+    return '.user__row';
+  }
+  static get userSelector() {
+    return '.user-item';
+  }
+  static get massageSelector() {
+    return '.massage';
+  }
 
   bindToDOM() {
     this.parentEl.innerHTML = this.constructor.markup;
     this.widget = this.parentEl.querySelector(this.constructor.widgetSelector);
     this.widget.addEventListener('click', (evt) => this.onClick(evt));
+    this.widget
+      .querySelector('.input__massage')
+      .addEventListener('keyup', (evt) => this.sendMessage(evt));
   }
 
   onClick(e) {
-    /// create modal append tiket
-    if (e.target.closest('.add')) {
-      e.preventDefault();
-      this.creatModalToDom('add');
-    }
-    /// close modal
-    if (e.target.closest('.cancel')) {
-      e.preventDefault();
-      e.target.closest('.modal').remove();
-    }
-
-    /// ok form
-    if (e.target.closest('.ok') && e.target.closest('.modal-add')) {
-      // e.preventDefault();
-      this.onFormAdd(e);
-    }
-    if (e.target.closest('.control') && e.target.closest('.edit')) {
-      this.editTic(e);
-    }
-    /// edit
-    if (e.target.closest('.ok') && e.target.closest('.modal-edit')) {
-      // e.preventDefault();
-      this.onFormEdit(e);
-    }
-    /// delete
-    if (e.target.closest('.control') && e.target.closest('.delete')) {
-      this.deltTic(e);
-    }
-    /// full info
-    if (!e.target.closest('.control') && e.target.closest('.ticket')) {
-      if (!e.target.closest('.ticket').querySelector('.description')) {
-        this.fullTic(e);
-      }
-      if (e.target.closest('.ticket').querySelector('.description')) {
-        e.target.closest('.ticket').querySelector('.description').remove();
-      }
-    }
-    /// /edit status
-    if (e.target.closest('.control') && e.target.closest('.control').querySelector('.status')) {
-      this.editStatus(e);
+    /// login btn
+    if (e.target.closest('.login-btn')) {
+      this.loginBtn(e);
     }
   }
-
-  editStatus(e) {
-    const tic = e.target.closest('.ticket');
-
-    const data = [
-      { name: 'method', value: 'editStatusId' },
-      { name: 'id', value: tic.dataset.id },
-    ];
-    createRequest(data, 'GET', (resp) => {
-      if (resp.ok) {
-        this.allTicketsReq();
-      }
-    });
+  sendMessage(e) {
+    const inputMessege = this.parentEl.querySelector('.input__massage');
+    if (e.code === 'Enter') {
+      this.ws.send(JSON.stringify({ textMassage: inputMessege.value, method: 'message' }));
+      inputMessege.value = '';
+    }
   }
-
-  allTicketsReq() {
-    const data = [{ name: 'method', value: 'allTickets' }];
-    createRequest(data, 'GET', (resp) => {
-      if (resp) {
-        const row = this.parentEl.querySelector('.body-row');
-        row.innerHTML = '';
-        resp.forEach((item) => {
-          row.append(this.creaTicToDom(item));
-        });
-      }
-    });
+  loginBtn(e) {
+    const input = e.target.closest('.login').querySelector('.login-input');
+    if (this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ login: input.value, method: 'register' }));
+    } else {
+      // Reconnect
+      this.ws = new WebSocket(`ws://${this.url}:${this.port}/ws`);
+    }
   }
-
-  fullTic(e) {
-    e.preventDefault();
-    const perent = e.target.closest('.ticket');
-    const data = [
-      { name: 'method', value: 'ticketById' },
-      { name: 'id', value: perent.dataset.id },
-    ];
-    createRequest(data, 'GET', (resp) => {
-      if (resp) {
-        const row = perent.querySelector('.name-row');
-        const description = document.createElement('div');
-        description.className = 'description';
-        description.innerText = resp.description;
-        row.append(description);
-      }
-    });
-  }
-
-  deltTic(e) {
-    /* eslint-disable no-restricted-globals */
-    const result = confirm(
-      'Вы уверенны что хотите удалить тикет? данное действие будет не обратимо.'
-    );
-    e.preventDefault();
-    if (result) {
-      const tic = e.target.closest('.ticket');
-      const data = [
-        { name: 'method', value: 'ticketDelId' },
-        { name: 'id', value: tic.dataset.id },
-      ];
-      createRequest(data, 'GET', () => {
-        this.allTicketsReq();
+  wsMessage(evt) {
+    const rowUser = this.parentEl.querySelector(this.constructor.userRowSelector);
+    const data = JSON.parse(evt.data);
+    if (data.method === 'register' && data.status === 'ok') {
+      this.parentEl.querySelector('.login').classList.remove('login__activ');
+    } else if (data.method === 'register' && data.status === 'no') {
+      alert('Логин уже занят');
+    }
+    if (data.method === 'message') {
+      this.addMassage(data);
+    }
+    if (data.method === 'update') {
+      const { arrUser, userAutor } = data;
+      rowUser.innerHTML = '';
+      arrUser.forEach((user) => {
+        if (user === userAutor) {
+          user = 'You';
+        }
+        this.addAuthor(user);
       });
     }
   }
-
-  editTic(e) {
-    e.preventDefault();
-    const perent = e.target.closest('.ticket');
-    this.thisTic = perent;
-    const data = [
-      { name: 'method', value: 'ticketById' },
-      { name: 'id', value: perent.dataset.id },
-    ];
-    createRequest(data, 'GET', (resp) => {
-      if (resp) {
-        this.creatModalToDom('edit');
-        const modal = this.parentEl.querySelector('.modal');
-        const name = modal.querySelector('.modal-name');
-        const description = modal.querySelector('.modal-description');
-        name.value = resp.name;
-        description.value = resp.description;
+  addAuthor(user) {
+    const author = document.createElement('div');
+    author.className = 'user-item';
+    if (user === 'You') {
+      user = 'You';
+      author.classList.add('red');
+    }
+    author.innerText = user;
+    this.parentEl.querySelector(this.constructor.userRowSelector).append(author);
+  }
+  dellAuthor(data) {
+    const { id } = data;
+    [...this.parentEl.querySelector(this.constructor.userRowSelector)].forEach((element) => {
+      if (element.dataset.id === id) {
+        element.remove();
       }
     });
   }
 
-  onFormEdit(e) {
-    e.preventDefault();
-    const form = this.parentEl.querySelector('.modal-form');
-    const data = {};
-    [...form.elements].forEach((item) => {
-      if (item.id) {
-        data[item.id] = item.value;
-      }
-    });
-    data.status = this.thisTic.dataset.status;
-    data.id = this.thisTic.dataset.id;
-    data.method = 'editTicket';
-    this.thisTic = {};
-    createRequest(data, 'POST', (resp) => {
-      if (resp) {
-        this.parentEl.querySelector('.modal').remove();
-        this.allTicketsReq();
-      }
-    });
-  }
-
-  onFormAdd(e) {
-    e.preventDefault();
-    const form = this.parentEl.querySelector('.modal-form');
-    const data = {};
-    [...form.elements].forEach((item) => {
-      if (item.id) {
-        data[item.id] = item.value;
-      }
-    });
-    data.method = 'createTicket';
-    createRequest(data, 'POST', (resp) => {
-      if (resp) {
-        this.parentEl.querySelector('.modal').remove();
-        this.allTicketsReq();
-      }
-    });
-  }
-
-  creaTicToDom(data) {
-    const ticketNode = document.createElement('div');
-    ticketNode.className = 'ticket';
-    ticketNode.dataset.id = data.id;
-    ticketNode.dataset.name = data.name;
-    ticketNode.dataset.status = data.status;
-    ticketNode.innerHTML = `
-            <div class="ticket-row">
-             <div class="control-row">
-                <span class="control">
-                  <span class="status">&#10003</span>
-                </span>
-              </div>
-              <div class="name-row">
-              <div class="name">${data.name}</div>
-              </div>
-              <div class="created">${data.created}</div>
-              <div class="control-row">
-                <span class="control ">
-                  <span class="edit active">&#9998</span>
-                </span>
-              </div>
-              <div class="control-row">
-                <span class="control">
-                  <span class="delete active">&#215</span>
-                </span>
+  addMassage(data) {
+    const { id, date, textMassage } = data;
+    let { author } = data;
+    const massage = document.createElement('div');
+    if (data.userAutor === 'true') {
+      author = 'You';
+    }
+    massage.className = 'massage';
+    massage.dataset.id = id;
+    massage.innerHTML = `
+         <div class='massage-item'>
+                <div class='massage-title'>
+                  <div class='author'>${author}</div>
+                  <div class='date'> ${date}</div>
+                </div>
+                <div class='massage-text'>${textMassage}</div>
               </div>
             `;
-    /// // status fail
-    const stat = ticketNode.querySelector('.status');
-
-    if (data.status) {
-      stat.classList.add('active');
-    } else {
-      stat.classList.remove('active');
+    if (data.userAutor === 'true') {
+      massage.classList.add('you');
+      massage.querySelector('.massage-title').classList.add('red');
     }
-    return ticketNode;
-  }
-
-  creatModalToDom(title = 'add') {
-    let titleText = 'Добавить тикет';
-    const modal = document.createElement('div');
-    modal.className = 'modal modal-add';
-    if (title === 'edit') {
-      titleText = 'Изменить тикет';
-      modal.className = 'modal modal-edit';
-    }
-
-    modal.innerHTML = `
-          <div class="modal-row">
-            <div class="modal-title"> ${titleText}</div>
-            <div class="modal-body">
-              <form class="modal-form" action="">
-                <label class="modal-lable" for="name" >Краткое описание</label>
-                <input class="input modal-name" type="text" id="name" required placeholder="описание">
-                <span class="modal-lable" >Подробное описание</span>
-
-                <textarea class="textarea modal-description" id="description"  required placeholder = "описание11" > </textarea>
-            
-                <div class="form-control">
-                  <button class="btn cancel">Отмена</button>
-                  <button class="btn ok">ОК</button>
-                </div> 
-              </form>
-            </div>
-          </div>
-            `;
-    this.parentEl.querySelector(this.constructor.widgetSelector).append(modal);
+    this.parentEl.querySelector(this.constructor.massageRowSelector).append(massage);
   }
 }
+
+// (async () => {
+//   const input = e.target.closest('.login').querySelector('.login-input');
+//   console.log(input.value);
+//   const response = await fetch(`${this.url}:${this.port}/login/`, {
+//     body: JSON.stringify({ login: `${input.value}` }),
+//     method: 'POST',
+//   });
+//   const status = await response.status;
+//   if (status === 204) {
+//     this.parentEl.querySelector('.login').classList.remove('login__activ');
+//     console.log('ok');
+//   } else if (status === 205) {
+//     alert('Логин уже занят');
+//   }
+// })();
