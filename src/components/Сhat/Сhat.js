@@ -1,7 +1,8 @@
 export default class Сhat {
   constructor(parentEl) {
     this.parentEl = parentEl;
-    this.url = 'localhost';
+    //this.url = 'localhost';
+    this.url = 'https://ahj-homeworks-sse.herokuapp.com/';
     this.port = 7070;
     this.name = '';
 
