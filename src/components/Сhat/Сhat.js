@@ -72,7 +72,9 @@ export default class Сhat {
   }
 
   connect() {
-    this.ws = new WebSocket(`ws://${this.url}:${this.port}/ws`);
+    /// if localhost
+    /// this.ws = new WebSocket(`ws://${this.url}:${this.port}/ws`);
+    this.ws = new WebSocket(`wss://${this.url}:${this.port}/ws`);
 
     this.ws.addEventListener('open', () => {
       console.log('open');
