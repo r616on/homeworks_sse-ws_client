@@ -105,7 +105,14 @@ export default class Сhat {
     this.widget.addEventListener('click', (evt) => this.onClick(evt));
     this.widget
       .querySelector('.input__massage')
-      .addEventListener('keyup', (evt) => this.sendMessage(evt));
+      .addEventListener('keyup', (evt) => this.sendMessage(evt))
+      .addEventListener('keypress', (evt) => this.sendMessage(evt));
+  }
+
+  keypressQ(e) {
+    if (e.code === 'Enter') {
+      alert('enter');
+    }
   }
 
   onClick(e) {
