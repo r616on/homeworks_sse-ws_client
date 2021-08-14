@@ -73,7 +73,7 @@ export default class Сhat {
 
   connect() {
     /// if localhost
-    /// this.ws = new WebSocket(`ws://${this.url}:${this.port}/ws`);
+    // this.ws = new WebSocket(`ws://${this.url}:${this.port}/ws`);
     this.ws = new WebSocket(`wss://${this.url}:${this.port}/wss`);
 
     this.ws.addEventListener('open', () => {
@@ -105,8 +105,10 @@ export default class Сhat {
     this.widget.addEventListener('click', (evt) => this.onClick(evt));
     this.widget
       .querySelector('.input__massage')
-      .addEventListener('keyup', (evt) => this.sendMessage(evt))
-      .addEventListener('keypress', (evt) => this.sendMessage(evt));
+      .addEventListener('keyup', (evt) => this.sendMessage(evt));
+    // this.widget.querySelector('.input__massage').addEventListener('keypress', (evt) => {
+    //   console.log(evt);
+    // });
   }
 
   keypressQ(e) {
