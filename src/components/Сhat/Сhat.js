@@ -43,9 +43,10 @@ export default class Сhat {
               </div>            
             
           </div>
-          <div class='input'>
-              <input class='input__massage' type='text' placeholder='Введите ваше сообщение' / >
-            </div>
+          <form class='input'>
+<input class='input__massage' type='text' placeholder='Введите ваше сообщение' / >
+<!-- <button class="btn sub" type="submit"></button> -->
+          </form>
         </div>
       </div>
     </div>`;
@@ -103,12 +104,17 @@ export default class Сhat {
     this.widget = this.parentEl.querySelector(this.constructor.widgetSelector);
     this.connect();
     this.widget.addEventListener('click', (evt) => this.onClick(evt));
-    this.widget
-      .querySelector('.input__massage')
-      .addEventListener('keyup', (evt) => this.sendMessage(evt));
-    // this.widget.querySelector('.input__massage').addEventListener('keypress', (evt) => {
-    //   console.log(evt);
-    // });
+
+    this.widget.querySelector('.input').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const inputMessege = this.parentEl.querySelector('.input__massage');
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ textMassage: inputMessege.value, method: 'message' }));
+        inputMessege.value = '';
+      } else {
+        this.connect();
+      }
+    });
   }
 
   keypressQ(e) {
@@ -121,18 +127,6 @@ export default class Сhat {
     /// login btn
     if (e.target.closest('.login-btn')) {
       this.loginBtn(e);
-    }
-  }
-
-  sendMessage(e) {
-    const inputMessege = this.parentEl.querySelector('.input__massage');
-    if (e.code === 'Enter') {
-      if (this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({ textMassage: inputMessege.value, method: 'message' }));
-        inputMessege.value = '';
-      } else {
-        this.connect();
-      }
     }
   }
 
